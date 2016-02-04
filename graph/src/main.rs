@@ -4,10 +4,9 @@
 use std::env;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufRead,BufReader};
+use std::io::{BufRead,BufReader,Read,stdin};
 
 
-type PathList = HashMap<Vec<String>, Vec<String>>;
 type Graph = HashMap<String, Vec<String>>;
 
 struct NewGraph{
@@ -91,7 +90,7 @@ impl NewGraph{
     }
 
 
-    fn dfs_find(&self,node_index:usize,end_index:usize,visited:&mut Vec<usize>,depth_temp: usize,path:&mut Vec<usize>){
+    fn dfs_find(&self,node_index:usize,end_index:&usize,visited:&mut Vec<usize>,depth_temp: usize,path:&mut Vec<usize>)->Option<usize>{
         visited[node_index] = 1;
         if depth_temp>=path.len(){
             path.push(node_index);
@@ -101,20 +100,17 @@ impl NewGraph{
         let depth = depth_temp + 1;
         let mut get_first_neighbor = self.find_first_neighbor(node_index);
         while let Some(k) = get_first_neighbor{
-            if k == end_index{
-                path.push(k);
-                println!("out put one result");
-                for i in 0..depth+1{
-                    print!("{} {} {}\n", i, self.vertices[path[i]],path[i]);
-                }
-                print!("\n");
-                return   // how to fully jump out the recursion here?
+            if k == end_index.to_owned(){
+                return Some(depth);
             }
             if visited[k]==0{
-                self.dfs_find(k,end_index,visited,depth,path);
+                if let Some(index) = self.dfs_find(k,end_index,visited,depth,path){
+                    return Some(index);
+                }
             }
             get_first_neighbor = self.find_next_neighbor(node_index,k);
         }
+        None
     }
 
     fn dfs_path(&self, start:String, end:String){
@@ -127,23 +123,47 @@ impl NewGraph{
             Some(index) => index,
             None => panic!("Input Start Point invalid"),
         };
-
         let end_index = match char_to_index(&self.vertices,end){
             Some(index) => index,
             None => panic!("Input End Point invalid"),
         };
+
         path.push(start_index);
         let depth = 0;
-        self.dfs_find(start_index,end_index, &mut visited,depth,&mut path);
+        match self.dfs_find(start_index,&end_index, &mut visited,depth,&mut path){
+            None =>{println!("Can not find one path");},
+            Some(all_depth)=>{
+                for i in 0..all_depth{
+                    print!("{} ",self.vertices[path[i]]);
+                }
+                print!("{}\n",self.vertices[end_index]);
+            },
+        }
     }
 }
 
 fn main() {
     let graph = get_graph();
     let new_graph = NewGraph::new(graph);
-    new_graph.dfs_path("a".to_owned(),"c".to_owned());
+    get_path_point(stdin(), &new_graph);
 }
 
+fn get_path_point<R:Read>(reader:R, graph:&NewGraph){
+    let mut lines = BufReader::new(reader).lines();
+    while let Some(Ok(line)) = lines.next(){
+        let points:Vec<&str> = line.split_whitespace().collect();
+        match points.len(){
+            2 => {
+                let start_point = points[0].to_owned();
+                let end_point = points[1].to_owned();
+                graph.dfs_path(start_point,end_point);
+            },
+            _ => {
+                panic!("invalid path start and end point");
+            },
+        }
+    }
+}
 
 fn get_graph()->Graph{
 	let args:Vec<_> = env::args().collect();
