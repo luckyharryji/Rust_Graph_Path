@@ -9,49 +9,60 @@ use std::io::{Write, stdout};
 
 
 type Graph = HashMap<String, Vec<String>>;
+type VertexId = HashMap<String, usize>; 
 
 struct NewGraph{
     vertices: Vec<String>,
+    indices: VertexId,
     vertive_num: usize,
     adj_matrix: Vec<Vec<usize>>,
-}
-
-fn char_to_index(vertices:&Vec<String>,alpha:String)->Option<usize>{
-    for i in 0..vertices.len(){
-        if vertices[i]==alpha{
-            return Some(i);
-        }
-    }
-    None
 }
 
 impl NewGraph{
     fn new(input:Graph)->Self{
         let mut vertex = Vec::<String>::new();
+        let mut index = VertexId::new();
         let mut matrix = Vec::<Vec<usize>>::new();
+
+        let mut size = 0;
+
+
+        for (node,neighbor) in input.iter(){
+            if !index.contains_key(node){
+                    vertex.push(node.to_owned());
+                    index.insert(node.to_owned(), size);
+                    size += 1;
+            }
+
+            for i in 0..neighbor.len(){
+                if !index.contains_key(&neighbor[i]){
+                    vertex.push(neighbor[i].to_owned());
+                    index.insert(neighbor[i].to_owned(), size);
+                    size += 1;
+                }
+            }
+        }
+
         let mut temp = Vec::<usize>::new();
-
-
-        for ver in input.keys(){
-            vertex.push(ver.to_owned());
+        for j in 0..size {
             temp.push(0);
         }
 
-        for i in 0..vertex.len(){
+        for i in 0..size {
+
             matrix.push(temp.clone());
         }
-        let length = vertex.len();
 
         for (node,neighbor) in input.iter(){
-            match char_to_index(&vertex,node.to_owned()){
+            match index.get(&node.to_owned()){
                 None => panic!("Node invalid!!"),
                 Some(row) => {
                     for i in 0..neighbor.len(){
-                        match char_to_index(&vertex,neighbor[i].to_owned()){
+                        match index.get(&neighbor[i].to_owned()){
                             None => panic!("Node invalid!!"),
                             Some(colum) =>{
-                                matrix[row][colum] = 1;
-                                matrix[colum][row] = 1;
+                                matrix[row.to_owned()][colum.to_owned()] = 1;
+                                matrix[colum.to_owned()][row.to_owned()] = 1;
                             }
                         }   
                     }
@@ -59,10 +70,15 @@ impl NewGraph{
             }
         }
 
-        NewGraph{vertices:vertex,vertive_num:length,adj_matrix:matrix}
+        NewGraph{vertices:vertex, indices: index, vertive_num:size,adj_matrix:matrix}
     }
 
-
+    fn char_to_index(&self, alpha:String)->Option<usize>{
+        if let Some(id) = self.indices.get(&alpha){
+            return Some(id.to_owned());
+        }
+        None
+    }
     // return the neighbor node  of index
     fn find_first_neighbor(&self, index:usize)->Option<usize>{
         if index >(self.vertive_num-1){
@@ -120,11 +136,11 @@ impl NewGraph{
         for i in 0..self.vertive_num{
             visited.push(0);
         }
-        let start_index = match char_to_index(&self.vertices,start){
+        let start_index = match self.char_to_index(start){
             Some(index) => index,
             None => panic!("Input Start Point invalid"),
         };
-        let end_index = match char_to_index(&self.vertices,end){
+        let end_index = match self.char_to_index(end){
             Some(index) => index,
             None => panic!("Input End Point invalid"),
         };
@@ -139,7 +155,7 @@ impl NewGraph{
                     path_str.push_str(&self.vertices[path[i]]);
                     path_str.push_str(" ");
                 }
-                path_str.push_str(&self.vertices[path[end_index]]);
+                path_str.push_str(&self.vertices[end_index]);
                 return path_str;
             },
         }
@@ -177,8 +193,8 @@ mod read_src_n_dst_test {
     #[test]
     fn read_one_line() {
         let graph = build_graph();
-        let mock_read = StringReader::new("a b\n".to_owned());
-        let expected = String::from("a b\n");
+        let mock_read = StringReader::new("a d\n".to_owned());
+        let expected = String::from("a b d\n");
 
         let mut buf: Vec<u8> = Vec::new();
         find_n_show_path(mock_read, &mut buf, graph);
@@ -262,7 +278,7 @@ fn get_graph<R:Read>(reader: R)->Graph{
 
 #[cfg(test)]
 mod read_n_build_graph {
-    use super::{get_graph, Graph, NewGraph};
+    use super::{get_graph, Graph, NewGraph, VertexId};
     use std::io::{Read, Result};
 
 
@@ -284,19 +300,24 @@ mod read_n_build_graph {
         assert_eq!(get_graph(mock_read), expected);
     }
 
-
+    #[test]
     fn bulid_simple_graph() {
         let mock_read = StringReader::new("a b c\n".to_owned());
         let g_info = get_graph(mock_read);
         let vertex = vec!["a".to_owned(),"b".to_owned(),"c".to_owned()];
+        let mut index = VertexId::new();
+        index.insert("a".to_owned(), 0);
+        index.insert("b".to_owned(), 1);
+        index.insert("c".to_owned(), 2);
         let n = 3;
-        let mut mat = Vec::Vec<usize>::new();
+        let mut mat = Vec::<Vec<usize>>::new();
         mat.push(vec![0, 1, 1]);
         mat.push(vec![1, 0, 0]);
         mat.push(vec![1, 0, 0]);
-        let expected = NewGraph{vertices:vertex,vertive_num:n,adj_matrix:mat};
+        let expected = NewGraph{vertices:vertex,indices:index,vertive_num:n,adj_matrix:mat};
 
-        assert_eq!(NewGraph::new(g_info), expected);
+        let graph = NewGraph::new(g_info);
+        assert_eq!(graph.adj_matrix, expected.adj_matrix);
 
     }
 
