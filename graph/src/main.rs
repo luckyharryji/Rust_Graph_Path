@@ -1,4 +1,33 @@
+#[doc="freq
 
+Given any pair of nodes of a graph, find the path between them. 
+
+INPUT:
+
+The user enters queries on stdin, one at a time. 
+A query consists of two node names, a starting node and an ending node:
+    
+    a b
+
+
+OUTPUT:
+
+Prints out a path between the nodes, or a message that no such path exists.
+
+    a d b
+    No path
+
+Assumptions:
+
+ - Graph Undirected Graph.
+
+ - No self-loop
+
+ - all nodes are reprented as lower cased letter
+
+"]
+
+pub mod lib;
 
 
 use std::env;
@@ -6,161 +35,8 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead,BufReader,Read,stdin};
 use std::io::{Write, stdout};
+use lib::{Graph, NewGraph};
 
-
-type Graph = HashMap<String, Vec<String>>;
-type VertexId = HashMap<String, usize>; 
-
-struct NewGraph{
-    vertices: Vec<String>,
-    indices: VertexId,
-    vertive_num: usize,
-    adj_matrix: Vec<Vec<usize>>,
-}
-
-impl NewGraph{
-    fn new(input:Graph)->Self{
-        let mut vertex = Vec::<String>::new();
-        let mut index = VertexId::new();
-        let mut matrix = Vec::<Vec<usize>>::new();
-
-        let mut size = 0;
-
-
-        for (node,neighbor) in input.iter(){
-            if !index.contains_key(node){
-                    vertex.push(node.to_owned());
-                    index.insert(node.to_owned(), size);
-                    size += 1;
-            }
-
-            for i in 0..neighbor.len(){
-                if !index.contains_key(&neighbor[i]){
-                    vertex.push(neighbor[i].to_owned());
-                    index.insert(neighbor[i].to_owned(), size);
-                    size += 1;
-                }
-            }
-        }
-
-        let mut temp = Vec::<usize>::new();
-        for j in 0..size {
-            temp.push(0);
-        }
-
-        for i in 0..size {
-
-            matrix.push(temp.clone());
-        }
-
-        for (node,neighbor) in input.iter(){
-            match index.get(&node.to_owned()){
-                None => panic!("Node invalid!!"),
-                Some(row) => {
-                    for i in 0..neighbor.len(){
-                        match index.get(&neighbor[i].to_owned()){
-                            None => panic!("Node invalid!!"),
-                            Some(colum) =>{
-                                matrix[row.to_owned()][colum.to_owned()] = 1;
-                                matrix[colum.to_owned()][row.to_owned()] = 1;
-                            }
-                        }   
-                    }
-                }
-            }
-        }
-
-        NewGraph{vertices:vertex, indices: index, vertive_num:size,adj_matrix:matrix}
-    }
-
-    fn char_to_index(&self, alpha:String)->Option<usize>{
-        if let Some(id) = self.indices.get(&alpha){
-            return Some(id.to_owned());
-        }
-        None
-    }
-    // return the neighbor node  of index
-    fn find_first_neighbor(&self, index:usize)->Option<usize>{
-        if index >(self.vertive_num-1){
-            return None;
-        }
-        for i in 0..self.vertive_num{
-            if self.adj_matrix[index][i] == 1{
-                return Some(i);
-            }
-        }
-        return None;
-
-    }
-
-    // return the next neighbor that cound potentionaly not been visited
-    fn find_next_neighbor(&self, index:usize,previous:usize)->Option<usize>{
-        if index >(self.vertive_num-1)||previous>(self.vertive_num-1) {
-            return None;
-        }
-        for i in previous+1..self.vertive_num{
-            if self.adj_matrix[index][i] == 1{
-                return Some(i);
-            }
-        }
-        return None;        
-    }
-
-
-    fn dfs_find(&self,node_index:usize,end_index:&usize,visited:&mut Vec<usize>,depth_temp: usize,path:&mut Vec<usize>)->Option<usize>{
-        visited[node_index] = 1;
-        if depth_temp>=path.len(){
-            path.push(node_index);
-        }else{
-            path[depth_temp] = node_index;
-        }
-        let depth = depth_temp + 1;
-        let mut get_first_neighbor = self.find_first_neighbor(node_index);
-        while let Some(k) = get_first_neighbor{
-            if k == end_index.to_owned(){
-                return Some(depth);
-            }
-            if visited[k]==0{
-                if let Some(index) = self.dfs_find(k,end_index,visited,depth,path){
-                    return Some(index);
-                }
-            }
-            get_first_neighbor = self.find_next_neighbor(node_index,k);
-        }
-        None
-    }
-
-    fn dfs_path(&self, start:String, end:String) -> String {
-        let mut visited = Vec::<usize>::new();
-        let mut path = Vec::<usize>::new();
-        for i in 0..self.vertive_num{
-            visited.push(0);
-        }
-        let start_index = match self.char_to_index(start){
-            Some(index) => index,
-            None => panic!("Input Start Point invalid"),
-        };
-        let end_index = match self.char_to_index(end){
-            Some(index) => index,
-            None => panic!("Input End Point invalid"),
-        };
-
-        path.push(start_index);
-        let depth = 0;
-        match self.dfs_find(start_index,&end_index, &mut visited,depth,&mut path){
-            None => return String::from("No path"),
-            Some(all_depth)=>{
-                let mut path_str = String::from("");
-                for i in 0..all_depth{
-                    path_str.push_str(&self.vertices[path[i]]);
-                    path_str.push_str(" ");
-                }
-                path_str.push_str(&self.vertices[end_index]);
-                return path_str;
-            },
-        }
-    }
-}
 
 fn find_n_show_path<R:Read, W:Write>(reader:R, writer: &mut W, graph:NewGraph){
     let mut lines = BufReader::new(reader).lines();
@@ -186,31 +62,43 @@ fn find_n_show_path<R:Read, W:Write>(reader:R, writer: &mut W, graph:NewGraph){
 
 #[cfg(test)]
 mod read_src_n_dst_test {
-    use super::{find_n_show_path, Graph, NewGraph};
+    use super::{find_n_show_path};
+    use lib::{Graph, NewGraph};
     use std::io::{Read, Result};
 
 
     #[test]
-    fn read_one_line() {
+    fn no_path() {
         let graph = build_graph();
-        let mock_read = StringReader::new("a d\n".to_owned());
-        let expected = String::from("a b d\n");
+        let mock_read = StringReader::new("a e\na f".to_owned());
+        let expected = String::from("No path\nNo path\n");
 
         let mut buf: Vec<u8> = Vec::new();
         find_n_show_path(mock_read, &mut buf, graph);
-        assert_eq!(String::from_utf8(buf).unwrap(), expected);
+        assert_eq!(String::from_utf8(buf).unwrap(),expected);
+    }
+
+    #[test]
+    fn read_one_line() {
+        let graph = build_graph();
+        let mock_read = StringReader::new("a b\n".to_owned());
+        let expected = vec![String::from("a b\n"), String::from("a d b\n")];
+
+        let mut buf: Vec<u8> = Vec::new();
+        find_n_show_path(mock_read, &mut buf, graph);
+        assert!(expected.contains(&String::from_utf8(buf).unwrap()));
     }
 
 
     #[test]
-    fn read_two_lines() {
+    fn read_more_lines() {
         let graph = build_graph();
         let mock_read = StringReader::new("a b\na e\n".to_owned());
-        let expected = String::from("a b\nNo path\n");
+        let expected = vec![String::from("a b\nNo path\n"), String::from("a d b\nNo path\n")];
 
         let mut buf: Vec<u8> = Vec::new();
         find_n_show_path(mock_read, &mut buf, graph);
-        assert_eq!(String::from_utf8(buf).unwrap(), expected);
+        assert!(expected.contains(&String::from_utf8(buf).unwrap()));
     }
 
 
@@ -278,7 +166,8 @@ fn get_graph<R:Read>(reader: R)->Graph{
 
 #[cfg(test)]
 mod read_n_build_graph {
-    use super::{get_graph, Graph, NewGraph, VertexId};
+    use super::{get_graph};
+    use lib::{Graph, NewGraph, VertexId};
     use std::io::{Read, Result};
 
 
@@ -314,10 +203,12 @@ mod read_n_build_graph {
         mat.push(vec![0, 1, 1]);
         mat.push(vec![1, 0, 0]);
         mat.push(vec![1, 0, 0]);
-        let expected = NewGraph{vertices:vertex,indices:index,vertive_num:n,adj_matrix:mat};
+        //let expected = NewGraph::build(vertex,index,n,mat);
 
         let graph = NewGraph::new(g_info);
-        assert_eq!(graph.adj_matrix, expected.adj_matrix);
+        assert_eq!(graph.get_matrix(), mat);
+        assert_eq!(graph.get_index(), index);
+        assert_eq!(graph.get_vertex(), vertex);
 
     }
 
@@ -386,7 +277,7 @@ fn main() {
     }
     let file = File::open(&args[1]).expect("Error");
 
-    let graph = get_graph(file);
-    let new_graph = NewGraph::new(graph);
+    let graph_info = get_graph(file);
+    let new_graph = NewGraph::new(graph_info);
     find_n_show_path(stdin(), &mut stdout(), new_graph);
 }
