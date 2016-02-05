@@ -39,6 +39,7 @@ impl NewGraph{
         for i in 0..vertex.len(){
             matrix.push(temp.clone());
         }
+        
         let length = vertex.len();
 
         for (node,neighbor) in input.iter(){
@@ -114,11 +115,13 @@ impl NewGraph{
     }
 
     fn dfs_path(&self, start:String, end:String){
-        let mut visited = Vec::<usize>::new();
+        // let mut visited = Vec::<usize>::new();
         let mut path = Vec::<usize>::new();
-        for i in 0..self.vertive_num{
-            visited.push(0);
-        }
+        // for i in 0..self.vertive_num{
+        //     visited.push(0);
+        // }
+        // visited = [0;self.vertive_num];
+        let mut visited = std::iter::repeat(0).take(self.vertive_num).collect::<Vec<_>>();
         let start_index = match char_to_index(&self.vertices,start){
             Some(index) => index,
             None => panic!("Input Start Point invalid"),
