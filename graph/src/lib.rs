@@ -1,9 +1,6 @@
 
-use std::env;
+
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::{BufRead,BufReader,Read,stdin};
-use std::io::{Write, stdout};
 
 
 pub type Graph = HashMap<String, Vec<String>>;
@@ -42,12 +39,11 @@ impl NewGraph{
         }
 
         let mut temp = Vec::<usize>::new();
-        for j in 0..size {
+        for _ in 0..size {
             temp.push(0);
         }
 
-        for i in 0..size {
-
+        for _ in 0..size {
             matrix.push(temp.clone());
         }
 
@@ -148,7 +144,7 @@ impl NewGraph{
     pub fn dfs_path(&self, start:String, end:String) -> String {
         let mut visited = Vec::<usize>::new();
         let mut path = Vec::<usize>::new();
-        for i in 0..self.vertive_num{
+        for _ in 0..self.vertive_num{
             visited.push(0);
         }
         let start_index = match self.char_to_index(start){

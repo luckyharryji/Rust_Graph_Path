@@ -1,25 +1,39 @@
-#[doc="freq
+#[doc="graph traversal
 
-Given any pair of nodes of a graph, find the path between them. 
+__author__ = 'Xiangyu Ji,  Nianzu Li'
+
+The program get the file representating undirected graph,
+and from the standrad input was given pair of nodes inside a graph
+find the path between them. 
 
 INPUT:
-
-The user enters queries on stdin, one at a time. 
-A query consists of two node names, a starting node and an ending node:
-    
-    a b
+    The program get the second parameter of the run command as the file name of the graph.
+    Then it get queries on stdin, two alpha per line at a time. 
+    A query consists of two node names, a starting node and an ending node:
+        i.e: 
+            a b
 
 
 OUTPUT:
+    If the input file name is invalid, program end with panic, i.e:
+        Error with the Graph File reading
 
-Prints out a path between the nodes, or a message that no such path exists.
+    If the number of start node and end node exceed 2, print the message:
+        Invalid path start and end point
 
-    a d b
-    No path
+    If the input start/end node is not a valid node inside the graph represented by the file,
+    print the message i.e:
+        Input Start Point invalid
+        Input End Point invalid
+
+    If graph contains path between the input nodes, prints out nodes along the path between the nodes.
+    If there isn't such path exists, print out the message.
+        a d b
+        No path
 
 Assumptions:
 
- - Graph Undirected Graph.
+ - Graph represented by the file is undirected Graph.
 
  - No self-loop
 
@@ -31,11 +45,44 @@ pub mod lib;
 
 
 use std::env;
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead,BufReader,Read,stdin};
 use std::io::{Write, stdout};
 use lib::{Graph, NewGraph};
+
+
+fn main() {
+
+    let args:Vec<_> = env::args().collect();
+    if args.len()!=2{
+        panic!("Error with the Graph File reading");
+    }
+    let file = File::open(&args[1]).expect("Error");
+
+    let graph_info = get_graph(file);
+    let new_graph = NewGraph::new(graph_info);
+    find_n_show_path(stdin(), &mut stdout(), new_graph);
+}
+
+
+
+fn get_graph<R:Read>(reader: R)->Graph{
+
+    let mut reader = BufReader::new(reader).lines();
+    let mut graph = Graph::new();
+
+    while let Some(Ok(line)) = reader.next(){
+        let node_info = line.to_owned();
+        let nodes: Vec<&str> = node_info.split_whitespace().collect();
+
+        let mut neighbor = Vec::<String>::new();
+        for i in 1..nodes.len(){
+            neighbor.push(nodes[i].to_owned());
+        }
+        graph.insert(nodes[0].to_owned(),neighbor);
+    }
+    graph
+}
 
 
 fn find_n_show_path<R:Read, W:Write>(reader:R, writer: &mut W, graph:NewGraph){
@@ -48,12 +95,12 @@ fn find_n_show_path<R:Read, W:Write>(reader:R, writer: &mut W, graph:NewGraph){
                 let end_point = points[1].to_owned();
                 let path_str = graph.dfs_path(start_point,end_point);
 
-                if let Err(x) = (*writer).write(&*(format!("{}\n", path_str).into_bytes())){
+                if let Err(_) = (*writer).write(&*(format!("{}\n", path_str).into_bytes())){
                     panic!("Fail writing");
                 }
             },
             _ => {
-                panic!("invalid path start and end point");
+                panic!("Invalid path start and end point");
             },
         }
     }
@@ -145,24 +192,6 @@ mod read_src_n_dst_test {
     }
 }
 
-
-fn get_graph<R:Read>(reader: R)->Graph{
-
-    let mut reader = BufReader::new(reader).lines();
-    let mut graph = Graph::new();
-
-    while let Some(Ok(line)) = reader.next(){
-    	let node_info = line.to_owned();
-        let nodes: Vec<&str> = node_info.split_whitespace().collect();
-
-    	let mut neighbor = Vec::<String>::new();
-    	for i in 1..nodes.len(){
-    		neighbor.push(nodes[i].to_owned());
-    	}
-    	graph.insert(nodes[0].to_owned(),neighbor);
-    }
-    graph
-}
 
 #[cfg(test)]
 mod read_n_build_graph {
@@ -266,18 +295,4 @@ mod read_n_build_graph {
             return Ok(count);
         }
     }
-}
-
-
-fn main() {
-
-    let args:Vec<_> = env::args().collect();
-    if args.len()!=2{
-        panic!("Error with the Graph File reading");
-    }
-    let file = File::open(&args[1]).expect("Error");
-
-    let graph_info = get_graph(file);
-    let new_graph = NewGraph::new(graph_info);
-    find_n_show_path(stdin(), &mut stdout(), new_graph);
 }
